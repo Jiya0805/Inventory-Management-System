@@ -18,6 +18,7 @@ session = Session()
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
+
 # Define models
 class Admin(Base):
     __tablename__ = 'admin'
@@ -79,15 +80,20 @@ def register_user():
 
 # User login
 def login_user():
-    username = input("Enter username: ")
-    password = hash_password(input("Enter password: "))
+    username = input("Username: ")
+    password = hash_password(input("Password: "))
+    # print("Debug: Entered password hash:", password)  # Debugging
+
     user = session.query(User).filter_by(username=username, password=password).first()
-    
+    # print("Debug: Retrieved user:", user)  # Check if user is fetched
+
     if user:
-        print("Login successful.")
-        user_menu(user)  # Automatically show user menu after login
+        print(f"Welcome, {user.username}!")
+        user_menu(user)
     else:
         print("Invalid credentials.")
+
+
 
 
 # Admin login
@@ -97,7 +103,7 @@ def login_admin():
     admin = session.query(Admin).filter_by(username=username, password=password).first()
     if admin:
         print("Admin login successful.")
-        admin_menu(user)
+        admin_menu()
     else:
         print("Invalid credentials.")
 
@@ -236,45 +242,134 @@ def user_menu(user):
         else:
             print("Invalid choice.")
 
-
-# Main function
-def main():
-    add_dummy_data()
+def admin_menu():
     while True:
-        print("Choose: \n(1) User \n(2) Admin \n(3) Exit")
-        choice = input()
-        if choice == "1":
-            print("Choose: \n(1) Register \n(2) Login ")
-            action = input()
-            if action == "1":
-                register_user()
-            elif action == "2":
-                login_user()
-            else:
-                print("Invalid choice.")
-        elif choice == "2":
-            admin = login_admin()
-            if admin:
-                print(f"Welcome, Admin {admin.username}!")
-            else:
-                print("Invalid credentials.")
-        elif choice == "3":
-            print("Exiting the program.")
-            break
-        else:
-            print("Invalid choice.")
+        print("\nAdmin Dashboard")
+        print("1. View Products")
+        print("2. Manage Products")
+        print("3. View Orders")
+        print("4. Analysis")
+        print("5. Validate Payment")
+        print("6. Logout")
 
-# Function to add dummy data
+        choice = input("Select an option: ")
+
+        if choice == '1':
+            view_product()
+        elif choice == '2':
+            manage_products()
+        elif choice == '3':
+            view_orders()
+        elif choice == '4':
+            analysis()
+        elif choice == '5':
+            validate_payment()
+        elif choice == '6':
+            print("Logging out...")
+            return  # Exit the function properly
+        else:
+            print("Invalid option.")
+
+def view_product():
+    products = session.query(Product).all()
+    print("\nAvailable Products:")
+    for p in products:
+        print(f"ID: {p.productid}, Name: {p.name}, Cost Price: {p.costprice}, Selling Price: {p.sellingprice}, Stock: {p.quantity}")
+
+    plot_stock_graph(products)
+
+def plot_stock_graph(products):
+    names = [p.name for p in products]
+    stocks = [p.quantity for p in products]
+    plt.bar(names, stocks)
+    plt.xlabel('Products')
+    plt.ylabel('Stock Level')
+    plt.title('Stock Analysis')
+    plt.show()
+
+def manage_products():
+    while True:
+        print("1. Add Product")
+        print("2. Update Product")
+        print("3. Delete Product")
+        print("4. Exit")
+        option = input("Select an option: ")
+        if option == '1':
+            name = input("Product name: ")
+            quantity = int(input("Product quantity: "))
+            cost_price = float(input("Product cost price: "))
+            selling_price = float(input("Product selling price: "))
+
+            new_product = Product(name=name, quantity=quantity, costprice=cost_price, sellingprice=selling_price)
+            session.add(new_product)
+            session.commit()
+            print("Product added successfully.")
+
+        elif option == '2':
+            product_id = int(input("Product ID to update: "))
+            product = session.get(Product, product_id)  # Updated line
+
+            if product:
+                product.name = input("New name: ")
+                product.costprice = float(input("New cost price: "))
+                product.sellingprice = float(input("New selling price: "))
+                product.quantity = int(input("New stock: "))
+                session.commit()
+                print("Product updated successfully.")
+            else:
+                print("Product not found.")
+
+        elif option == '3':
+            product_id = int(input("Product ID to delete: "))
+            product = session.get(Product, product_id)  # Updated line
+
+            if product:
+                session.delete(product)
+                session.commit()
+                print("Product deleted successfully.")
+            else:
+                print("Product not found.")
+
+        elif option == '4':
+                print("Exiting...")
+                break
+        else:
+            print("Invalid choice!")
+       
+
+
+def view_orders():
+    orders = session.query(Order).all()
+    print("\nOrder History:")
+    for o in orders:
+        print(f"Order ID: {o.orderid}, User ID: {o.userid}, Total: {o.total_price}, Time: {o.time}")
+
+def analysis():
+    revenue = session.query(func.sum(Order.total_price)).scalar()
+    print(f"Total Revenue: {revenue}")
+
+    most_bought = session.query(Order.products, func.count(Order.orderid)).group_by(Order.products).order_by(func.count(Order.orderid).desc()).first()
+    if most_bought:
+        print(f"Most Bought Product: {most_bought[0]} (Quantity: {most_bought[1]})")
+
+def validate_payment():
+    try:
+        order_id = int(input("Enter order ID to validate: "))
+        order = session.get(Order, order_id)  # Updated line
+
+        if order:
+            print(f"Order Validated: {order.orderid}, Total: {order.total_price}")
+        else:
+            print("Invalid Order ID.")
+    except ValueError:
+        print("Please enter a valid integer for the order ID.")
+
+
 def add_dummy_data():
     # Check if data already exists
     if session.query(Admin).count() == 0:
         admin1 = Admin(username="admin", password=hash_password("admin123"))
         session.add(admin1)
-
-    if session.query(User).count() == 0:
-        user1 = User(username="john_doe", email="john@example.com", password=hash_password("password1"))
-        user2 = User(username="jane_doe", email="jane@example.com", password=hash_password("password2"))
-        session.add_all([user1, user2])
 
     if session.query(Product).count() == 0:
         product1 = Product(name="Laptop", quantity=10, costprice=500.00, sellingprice=700.00)
@@ -285,8 +380,30 @@ def add_dummy_data():
     session.commit()
     print("Dummy data added.")
 
-
+def main():
+    add_dummy_data()
+    while True:
+        print("Choose: \n(1) User \n(2) Admin \n(3) Exit")
+        choice = input()
+        if choice == "1":
+            print("Choose: \n(1) Register \n(2) Login ")
+            action = input()
+            if action == "1":
+                register_user()  # Implement this function
+            elif action == "2":
+                login_user()  # This will take the user to the user menu
+            else:
+                print("Invalid choice.")
+        elif choice == "2":
+            admin = login_admin()
+            if admin:
+                print(f"Welcome, Admin {admin.username}!")
+                admin_menu()
+        elif choice == "3":
+            print("Exiting the program.")
+            break
+        else:
+            print("Invalid choice.")
 
 if __name__ == "__main__":
     main()
-    
