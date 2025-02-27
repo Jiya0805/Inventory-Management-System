@@ -1,0 +1,10 @@
+-- SQLite
+UPDATE orders SET time="2025-02-22 16:00:14" WHERE id=2;
+UPDATE orders SET time="2025-02-21 11:15:30" WHERE id=3;
+UPDATE orders SET time="2025-02-24 10:45:30" WHERE id=4;
+UPDATE orders SET time="2025-02-25 18:30:31" WHERE id=5;
+UPDATE orders SET time="2025-02-26 09:00:45" WHERE id=6;
+UPDATE orders SET time="2025-02-20 15:20:44" WHERE id=7;
+UPDATE orders SET time="2025-02-23 13:45:22" WHERE id=8;
+UPDATE orders SET time="2025-02-24 17:00:11" WHERE id=9;
+UPDATE orders SET time="2025-02-26 12:15:45" WHERE id=10;
